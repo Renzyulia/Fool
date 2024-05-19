@@ -238,3 +238,159 @@ final class CardsSet: UIView {
 }
 
 // сделать класс для каждой карты, можно указать масть и сделать протокол общий
+
+enum Suit {
+    
+    // черви
+    case hearts
+    
+    // трефы
+    case clubs
+    
+    // бубны
+    case diamonds
+    
+    // пики
+    case spades
+}
+
+enum Denomination: Int {
+    case six
+    case seven
+    case eight
+    case nine
+    case ten
+    case jack
+    case queen
+    case king
+    case ace
+}
+
+protocol Card {
+    var suit: Suit { get }
+    var isTrump: Bool { get }
+    var denomination: Denomination { get }
+    
+    func canBeat(_: Card) -> Bool
+}
+
+extension Card {
+    func canBeat(_ card: Card) -> Bool {
+        if card.isTrump && !isTrump {
+            return false
+        }
+        
+        if !card.isTrump && isTrump {
+            return true
+        }
+
+        if card.suit != suit {
+            return false
+        }
+        
+        if card.denomination.rawValue < denomination.rawValue {
+            return true
+        }
+        
+        return false
+    }
+}
+
+final class Six: Card {
+    let suit: Suit
+    let isTrump: Bool
+    let denomination: Denomination = .six
+    
+     init(suit: Suit, isTrump: Bool) {
+         self.suit = suit
+         self.isTrump = isTrump
+     }
+}
+
+final class Seven: Card {
+    let suit: Suit
+    let isTrump: Bool
+    let denomination: Denomination = .seven
+    
+     init(suit: Suit, isTrump: Bool) {
+         self.suit = suit
+         self.isTrump = isTrump
+     }
+}
+
+final class Eight: Card {
+    let suit: Suit
+    let isTrump: Bool
+    let denomination: Denomination = .eight
+    
+     init(suit: Suit, isTrump: Bool) {
+         self.suit = suit
+         self.isTrump = isTrump
+     }
+}
+
+final class Nine: Card {
+    let suit: Suit
+    let isTrump: Bool
+    let denomination: Denomination = .nine
+    
+     init(suit: Suit, isTrump: Bool) {
+         self.suit = suit
+         self.isTrump = isTrump
+     }
+}
+
+final class Ten: Card {
+    let suit: Suit
+    let isTrump: Bool
+    let denomination: Denomination = .ten
+    
+     init(suit: Suit, isTrump: Bool) {
+         self.suit = suit
+         self.isTrump = isTrump
+     }
+}
+
+final class Jack: Card {
+    let suit: Suit
+    let isTrump: Bool
+    let denomination: Denomination = .jack
+    
+     init(suit: Suit, isTrump: Bool) {
+         self.suit = suit
+         self.isTrump = isTrump
+     }
+}
+
+final class Queen: Card {
+    let suit: Suit
+    let isTrump: Bool
+    let denomination: Denomination = .queen
+    
+     init(suit: Suit, isTrump: Bool) {
+         self.suit = suit
+         self.isTrump = isTrump
+     }
+}
+
+final class King: Card {
+    let suit: Suit
+    let isTrump: Bool
+    let denomination: Denomination = .king
+    
+     init(suit: Suit, isTrump: Bool) {
+         self.suit = suit
+         self.isTrump = isTrump
+     }
+}
+
+final class Ace: Card {
+    let suit: Suit
+    let isTrump: Bool
+    let denomination: Denomination = .ace
+    
+     init(suit: Suit, isTrump: Bool) {
+         self.suit = suit
+         self.isTrump = isTrump
+     }
+}
