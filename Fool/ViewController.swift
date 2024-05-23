@@ -7,14 +7,20 @@
 
 import UIKit
 
-class ViewController: UIViewController {
+final class GameViewController: UIViewController {
     
-
+    var gameController: GameController? = nil
+    
     override func viewDidLoad() {
         super.viewDidLoad()
         
-        let field = Field(frameView: view.bounds)
+        let gameController = GameController()
+        self.gameController = gameController
+        
+        let field = Field(frameView: view.bounds, pack: gameController.pack, trump: gameController.trump!)
+        
         view.addSubview(field)
+        
         field.translatesAutoresizingMaskIntoConstraints = false
         NSLayoutConstraint.activate([
             field.topAnchor.constraint(equalTo: view.topAnchor),
@@ -25,6 +31,30 @@ class ViewController: UIViewController {
     }
 }
 
+
+extension UIImage {
+    func rotate(radians: CGFloat) -> UIImage {
+        let rotatedSize = CGRect(origin: .zero, size: size)
+            .applying(CGAffineTransform(rotationAngle: CGFloat(radians)))
+            .integral.size
+        UIGraphicsBeginImageContext(rotatedSize)
+        if let context = UIGraphicsGetCurrentContext() {
+            let origin = CGPoint(x: rotatedSize.width / 2.0,
+                                 y: rotatedSize.height / 2.0)
+            context.translateBy(x: origin.x, y: origin.y)
+            context.rotate(by: radians)
+            draw(in: CGRect(x: -origin.y, y: -origin.x,
+                            width: size.width, height: size.height))
+            let rotatedImage = UIGraphicsGetImageFromCurrentImageContext()
+            UIGraphicsEndImageContext()
+
+            return rotatedImage ?? self
+        }
+
+        return self
+    }
+}
+
 final class Field: UIView {
     
     let frameView: CGRect
@@ -32,22 +62,22 @@ final class Field: UIView {
     private var trumpView = UIImageView()
     private let set = CardsSet(firstCard: nil, secondCard: nil, thirdCard: nil, fourthCard: nil, fifthCard: nil, sixthCard: nil)
     
-    init(frameView: CGRect) {
+    init(frameView: CGRect, pack: [Card], trump: Card) {
         self.frameView = frameView
         super.init(frame: .zero)
         backgroundColor = .systemGreen
-        configurePack()
+        configurePack(with: trump.image.image)
         configurePlayingZone()
-        configureHandZone()
+        configureHandZone(pack)
     }
     
     required init?(coder: NSCoder) {
         fatalError("init(coder:) has not been implemented")
     }
     
-    private func configurePack() {
+    private func configurePack(with trump: UIImage) {
         let backView = UIImageView(image: UIImage(named: "Back"))
-        trumpView = UIImageView(image: UIImage(named: "Back"))
+        trumpView.image = trump.rotate(radians: .pi / 2)
         
         addSubview(trumpView)
         addSubview(backView)
@@ -59,7 +89,6 @@ final class Field: UIView {
             backView.topAnchor.constraint(equalTo: topAnchor, constant: frameView.height / 2.8),
             backView.bottomAnchor.constraint(equalTo: bottomAnchor, constant: -(frameView.height / 2.8))
         ])
-        
         
         trumpView.translatesAutoresizingMaskIntoConstraints = false
         NSLayoutConstraint.activate([
@@ -82,23 +111,23 @@ final class Field: UIView {
         ])
     }
     
-    private func configureHandZone() {
+    private func configureHandZone(_ pack: [Card]) {
         let mySet = CardsSet(
-            firstCard: UIImage(named: "Back")!,
-            secondCard: UIImage(named: "Back")!,
-            thirdCard: UIImage(named: "Back")!,
-            fourthCard: UIImage(named: "Back")!,
-            fifthCard: UIImage(named: "Back")!,
-            sixthCard: UIImage(named: "Back")!
+            firstCard: pack[0].image.image,
+            secondCard: pack[2].image.image,
+            thirdCard: pack[4].image.image,
+            fourthCard: pack[6].image.image,
+            fifthCard: pack[8].image.image,
+            sixthCard: pack[10].image.image
         )
         
         let opponentSet = CardsSet(
-            firstCard: UIImage(named: "Back")!,
-            secondCard: UIImage(named: "Back")!,
-            thirdCard: UIImage(named: "Back")!,
-            fourthCard: UIImage(named: "Back")!,
-            fifthCard: UIImage(named: "Back")!,
-            sixthCard: UIImage(named: "Back")!
+            firstCard: pack[1].image.image,
+            secondCard: pack[3].image.image,
+            thirdCard: pack[5].image.image,
+            fourthCard: pack[7].image.image,
+            fifthCard: pack[9].image.image,
+            sixthCard: pack[11].image.image
         )
         
         addSubview(opponentSet)
@@ -186,7 +215,7 @@ final class CardsSet: UIView {
         ])
         
         addSubview(secondCard)
-
+        
         secondCard.translatesAutoresizingMaskIntoConstraints = false
         NSLayoutConstraint.activate([
             secondCard.widthAnchor.constraint(equalToConstant: 74),
@@ -237,8 +266,6 @@ final class CardsSet: UIView {
     }
 }
 
-// сделать класс для каждой карты, можно указать масть и сделать протокол общий
-
 enum Suit {
     
     // черви
@@ -270,6 +297,7 @@ protocol Card {
     var suit: Suit { get }
     var isTrump: Bool { get set }
     var denomination: Denomination { get }
+    var image: VisualCard { get }
     
     func canBeat(_: Card) -> Bool
 }
@@ -283,7 +311,7 @@ extension Card {
         if !card.isTrump && isTrump {
             return true
         }
-
+        
         if card.suit != suit {
             return false
         }
@@ -301,9 +329,12 @@ final class Six: Card {
     var isTrump: Bool = false
     let denomination: Denomination = .six
     
-     init(suit: Suit) {
-         self.suit = suit
-     }
+    let image: VisualCard
+    
+    init(suit: Suit, image: VisualCard) {
+        self.suit = suit
+        self.image = image
+    }
 }
 
 final class Seven: Card {
@@ -311,9 +342,12 @@ final class Seven: Card {
     var isTrump: Bool = false
     let denomination: Denomination = .seven
     
-     init(suit: Suit) {
-         self.suit = suit
-     }
+    let image: VisualCard
+    
+    init(suit: Suit, image: VisualCard) {
+        self.suit = suit
+        self.image = image
+    }
 }
 
 final class Eight: Card {
@@ -321,9 +355,12 @@ final class Eight: Card {
     var isTrump: Bool = false
     let denomination: Denomination = .eight
     
-     init(suit: Suit) {
-         self.suit = suit
-     }
+    let image: VisualCard
+    
+    init(suit: Suit, image: VisualCard) {
+        self.suit = suit
+        self.image = image
+    }
 }
 
 final class Nine: Card {
@@ -331,9 +368,12 @@ final class Nine: Card {
     var isTrump: Bool = false
     let denomination: Denomination = .nine
     
-     init(suit: Suit) {
-         self.suit = suit
-     }
+    let image: VisualCard
+    
+    init(suit: Suit, image: VisualCard) {
+        self.suit = suit
+        self.image = image
+    }
 }
 
 final class Ten: Card {
@@ -341,9 +381,12 @@ final class Ten: Card {
     var isTrump: Bool = false
     let denomination: Denomination = .ten
     
-     init(suit: Suit) {
-         self.suit = suit
-     }
+    let image: VisualCard
+    
+    init(suit: Suit, image: VisualCard) {
+        self.suit = suit
+        self.image = image
+    }
 }
 
 final class Jack: Card {
@@ -351,9 +394,12 @@ final class Jack: Card {
     var isTrump: Bool = false
     let denomination: Denomination = .jack
     
-     init(suit: Suit) {
-         self.suit = suit
-     }
+    let image: VisualCard
+    
+    init(suit: Suit, image: VisualCard) {
+        self.suit = suit
+        self.image = image
+    }
 }
 
 final class Queen: Card {
@@ -361,9 +407,12 @@ final class Queen: Card {
     var isTrump: Bool = false
     let denomination: Denomination = .queen
     
-     init(suit: Suit) {
-         self.suit = suit
-     }
+    let image: VisualCard
+    
+    init(suit: Suit, image: VisualCard) {
+        self.suit = suit
+        self.image = image
+    }
 }
 
 final class King: Card {
@@ -371,9 +420,12 @@ final class King: Card {
     var isTrump: Bool = false
     let denomination: Denomination = .king
     
-     init(suit: Suit) {
-         self.suit = suit
-     }
+    let image: VisualCard
+    
+    init(suit: Suit, image: VisualCard) {
+        self.suit = suit
+        self.image = image
+    }
 }
 
 final class Ace: Card {
@@ -381,9 +433,12 @@ final class Ace: Card {
     var isTrump: Bool = false
     let denomination: Denomination = .ace
     
-     init(suit: Suit) {
-         self.suit = suit
-     }
+    let image: VisualCard
+    
+    init(suit: Suit, image: VisualCard) {
+        self.suit = suit
+        self.image = image
+    }
 }
 
 struct VisualCard {
