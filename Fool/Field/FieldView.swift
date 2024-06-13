@@ -21,13 +21,14 @@ final class Field: UIView {
         sixthCard: nil
     )
     
-    init(frameView: CGRect, pack: [Card], trumpFace: UIImage) {
+    init(frameView: CGRect, handCards: [Card], opponentHandCards: [Card], trumpFace: UIImage) {
         self.frameView = frameView
         super.init(frame: .zero)
         backgroundColor = .systemGreen
         configurePack(with: trumpFace)
         configurePlayingZone()
-        configureHandZone(pack)
+        configureOpponentHandZone(opponentHandCards)
+        configureHandZone(handCards)
     }
     
     required init?(coder: NSCoder) {
@@ -70,26 +71,17 @@ final class Field: UIView {
         ])
     }
     
-    private func configureHandZone(_ pack: [Card]) {
-        let mySet = CardsSet(
-            firstCard: pack[0].face.image,
-            secondCard: pack[2].face.image,
-            thirdCard: pack[4].face.image,
-            fourthCard: pack[6].face.image,
-            fifthCard: pack[8].face.image,
-            sixthCard: pack[10].face.image
-        )
-        
+    private func configureOpponentHandZone(_ cards: [Card]) {
         let opponentSet = CardsSet(
-            firstCard: pack[1].face.image,
-            secondCard: pack[3].face.image,
-            thirdCard: pack[5].face.image,
-            fourthCard: pack[7].face.image,
-            fifthCard: pack[9].face.image,
-            sixthCard: pack[11].face.image
+            firstCard: cards[0].face.image,
+            secondCard: cards[1].face.image,
+            thirdCard: cards[2].face.image,
+            fourthCard: cards[3].face.image,
+            fifthCard: cards[4].face.image,
+            sixthCard: cards[5].face.image
         )
-        
         addSubview(opponentSet)
+        
         opponentSet.translatesAutoresizingMaskIntoConstraints = false
         NSLayoutConstraint.activate([
             opponentSet.rightAnchor.constraint(equalTo: rightAnchor, constant: -30),
@@ -97,8 +89,19 @@ final class Field: UIView {
             opponentSet.topAnchor.constraint(equalTo: topAnchor, constant: 10),
             opponentSet.bottomAnchor.constraint(equalTo: set.topAnchor,constant: -10)
         ])
-        
+    }
+    
+    private func configureHandZone(_ cards: [Card]) {
+        let mySet = CardsSet(
+            firstCard: cards[0].face.image,
+            secondCard: cards[1].face.image,
+            thirdCard: cards[2].face.image,
+            fourthCard: cards[3].face.image,
+            fifthCard: cards[4].face.image,
+            sixthCard: cards[5].face.image
+        )
         addSubview(mySet)
+        
         mySet.translatesAutoresizingMaskIntoConstraints = false
         NSLayoutConstraint.activate([
             mySet.rightAnchor.constraint(equalTo: rightAnchor, constant: -30),

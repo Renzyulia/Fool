@@ -12,11 +12,21 @@ final class GameController {
     var field: Field? = nil
     var pack: [Card] = []
     var trump: Card? = nil
+    var handCards: [Card] = []
+    var opponentHandCards: [Card] = []
+    var currentPlayer: CurrentPlayer = .opponent
     
     init(frame: CGRect) {
         createPack()
         defineTrump()
-        field = Field(frameView: frame, pack: pack, trumpFace: trump?.face.image ?? UIImage(named: "Back")!)
+        dealCards()
+        field = Field(
+            frameView: frame,
+            handCards: handCards,
+            opponentHandCards: opponentHandCards,
+            trumpFace: trump?.face.image ?? UIImage(named: "Back")!
+        )
+        whoseGo()
     }
     
     private func createPack() {
@@ -60,6 +70,8 @@ final class GameController {
     ]
         
         pack.shuffle()
+        pack.shuffle()
+        pack.shuffle()
     }
     
     private func defineTrump() {
@@ -71,4 +83,67 @@ final class GameController {
             }
         }
     }
+    
+    private func dealCards() {
+        handCards.append(pack[0])
+        opponentHandCards.append(pack[1])
+        handCards.append(pack[2])
+        opponentHandCards.append(pack[3])
+        handCards.append(pack[4])
+        opponentHandCards.append(pack[5])
+        handCards.append(pack[6])
+        opponentHandCards.append(pack[7])
+        handCards.append(pack[8])
+        opponentHandCards.append(pack[9])
+        handCards.append(pack[10])
+        opponentHandCards.append(pack[11])
+        
+        pack.removeFirst(12)
+    }
+    
+    private func whoseGo() {
+        
+        if handCards.contains(where: { card in card.isTrump }) && !opponentHandCards.contains(where: { card in card.isTrump }) {
+            currentPlayer = .you
+        }
+        
+        if !handCards.contains(where: { card in card.isTrump }) && opponentHandCards.contains(where: { card in card.isTrump }) {
+            currentPlayer = .opponent
+        }
+        
+        if handCards.contains(where: { card in card.isTrump }) && opponentHandCards.contains(where: { card in card.isTrump }) {
+            
+            var youMinDenomination: Denomination = .six
+            var opponentMinDenomination: Denomination = .six
+            
+            for card in handCards {
+                if card.isTrump {
+                    if card.denomination.rawValue < youMinDenomination.rawValue {
+                        youMinDenomination = card.denomination
+                    }
+                }
+            }
+            
+            for card in opponentHandCards {
+                if card.isTrump {
+                    if card.denomination.rawValue < opponentMinDenomination.rawValue {
+                        opponentMinDenomination = card.denomination
+                    }
+                }
+            }
+            
+            if youMinDenomination.rawValue < opponentMinDenomination.rawValue {
+                currentPlayer = .you
+            } else {
+                currentPlayer = .opponent
+            }
+        }
+    }
 }
+
+enum CurrentPlayer {
+    case you
+    case opponent
+}
+
+// как начинается игра - нужно запомнить у кого какие карты на руках, определить чей первый ход
