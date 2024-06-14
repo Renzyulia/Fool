@@ -9,20 +9,20 @@ import UIKit
 
 final class CardsSet: UIView {
     
-    private let firstCard: UIImage?
-    private let secondCard: UIImage?
-    private let thirdCard: UIImage?
-    private let fourthCard: UIImage?
-    private let fifthCard: UIImage?
-    private let sixthCard: UIImage?
+    private let firstCard: CardView
+    private let secondCard: CardView
+    private let thirdCard: CardView
+    private let fourthCard: CardView
+    private let fifthCard: CardView
+    private let sixthCard: CardView
     
     init(
-        firstCard: UIImage?,
-        secondCard: UIImage?,
-        thirdCard: UIImage?,
-        fourthCard: UIImage?,
-        fifthCard: UIImage?,
-        sixthCard: UIImage?
+        firstCard: CardView,
+        secondCard: CardView,
+        thirdCard: CardView,
+        fourthCard: CardView,
+        fifthCard: CardView,
+        sixthCard: CardView
     ){
         self.firstCard = firstCard
         self.secondCard = secondCard
@@ -40,27 +40,7 @@ final class CardsSet: UIView {
         fatalError("init(coder:) has not been implemented")
     }
     
-    private func configureCard() -> UIImageView {
-        let card = UIImageView()
-        card.backgroundColor = .clear
-        card.layer.borderWidth = 1.0
-        return card
-    }
-    
     private func configureSet() {
-        let firstCard = configureCard()
-        firstCard.image = self.firstCard
-        let secondCard = configureCard()
-        secondCard.image = self.secondCard
-        let thirdCard = configureCard()
-        thirdCard.image = self.thirdCard
-        let fourthCard = configureCard()
-        fourthCard.image = self.fourthCard
-        let fifthCard = configureCard()
-        fifthCard.image = self.fifthCard
-        let sixthCard = configureCard()
-        sixthCard.image = self.sixthCard
-        
         addSubview(firstCard)
         
         firstCard.translatesAutoresizingMaskIntoConstraints = false

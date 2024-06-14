@@ -10,15 +10,16 @@ import UIKit
 final class Field: UIView {
     
     let frameView: CGRect
+    
     private let cards: UIView = UIView()
     private var trumpView = UIImageView()
     private let set = CardsSet(
-        firstCard: nil,
-        secondCard: nil,
-        thirdCard: nil,
-        fourthCard: nil,
-        fifthCard: nil,
-        sixthCard: nil
+        firstCard: CardView(face: nil),
+        secondCard: CardView(face: nil),
+        thirdCard: CardView(face: nil),
+        fourthCard: CardView(face: nil),
+        fifthCard: CardView(face: nil),
+        sixthCard: CardView(face: nil)
     )
     
     init(frameView: CGRect, handCards: [Card], opponentHandCards: [Card], trumpFace: UIImage) {
@@ -73,12 +74,12 @@ final class Field: UIView {
     
     private func configureOpponentHandZone(_ cards: [Card]) {
         let opponentSet = CardsSet(
-            firstCard: cards[0].face.image,
-            secondCard: cards[1].face.image,
-            thirdCard: cards[2].face.image,
-            fourthCard: cards[3].face.image,
-            fifthCard: cards[4].face.image,
-            sixthCard: cards[5].face.image
+            firstCard: CardView(face: cards[0].face),
+            secondCard: CardView(face: cards[1].face),
+            thirdCard: CardView(face: cards[2].face),
+            fourthCard: CardView(face: cards[3].face),
+            fifthCard: CardView(face: cards[4].face),
+            sixthCard: CardView(face: cards[5].face)
         )
         addSubview(opponentSet)
         
@@ -93,12 +94,12 @@ final class Field: UIView {
     
     private func configureHandZone(_ cards: [Card]) {
         let mySet = CardsSet(
-            firstCard: cards[0].face.image,
-            secondCard: cards[1].face.image,
-            thirdCard: cards[2].face.image,
-            fourthCard: cards[3].face.image,
-            fifthCard: cards[4].face.image,
-            sixthCard: cards[5].face.image
+            firstCard: CardView(face: cards[0].face),
+            secondCard: CardView(face: cards[1].face),
+            thirdCard: CardView(face: cards[2].face),
+            fourthCard: CardView(face: cards[3].face),
+            fifthCard: CardView(face: cards[4].face),
+            sixthCard: CardView(face: cards[5].face)
         )
         addSubview(mySet)
         
