@@ -7,26 +7,82 @@
 
 import UIKit
 
-final class GameController {
-    
-    var field: Field? = nil
+enum CurrentPlayer {
+    case you
+    case opponent
+}
+
+final class GameController: FieldViewDelegate {
+    var field: FieldView? = nil
     var pack: [Card] = []
     var trump: Card? = nil
     var handCards: [Card] = []
     var opponentHandCards: [Card] = []
+    var playingCards: [Card] = []
     var currentPlayer: CurrentPlayer = .opponent
     
     init(frame: CGRect) {
         createPack()
         defineTrump()
         dealCards()
-        field = Field(
+        whoseGo()
+        field = FieldView(
             frameView: frame,
             handCards: handCards,
             opponentHandCards: opponentHandCards,
-            trumpFace: trump?.face ?? UIImage(named: "Back")!
+            trump: trump ?? Card(suit: .clubs, denomination: .six),
+            currentPlayer: currentPlayer
         )
-        whoseGo()
+        field?.delegate = self
+    }
+    
+    func userMovedCard(at selectedCardIndex: Int, toCardAt: Int?) {
+        
+        let selectedCard: Card
+        
+        if currentPlayer == .opponent {
+            selectedCard = opponentHandCards[selectedCardIndex]
+        } else {
+            selectedCard = handCards[selectedCardIndex]
+        }
+        
+        guard let playedCardIndex = toCardAt else {
+            playingCards.insert(selectedCard, at: 0)
+
+            switch currentPlayer {
+            case .opponent:
+                opponentHandCards.remove(at: selectedCardIndex)
+                currentPlayer = .you
+                field?.putDownCard()
+            case .you:
+                handCards.remove(at: selectedCardIndex)
+                currentPlayer = .opponent
+                field?.putDownCard()
+            }
+            
+            return
+        }
+        
+        let playedCard = playingCards[playedCardIndex]
+        
+        if selectedCard.canBeat(playedCard) {
+            
+            playingCards.remove(at: playedCardIndex)
+            playingCards.insert(selectedCard, at: playedCardIndex)
+            
+            switch currentPlayer {
+            case .opponent:
+                opponentHandCards.remove(at: selectedCardIndex)
+                currentPlayer = .you
+                field?.putDownCard()
+            case .you:
+                handCards.remove(at: selectedCardIndex)
+                currentPlayer = .opponent
+                field?.putDownCard()
+            }
+        } else {
+            field?.cancelMove()
+        }
     }
     
     private func createPack() {
@@ -140,10 +196,3 @@ final class GameController {
         }
     }
 }
-
-enum CurrentPlayer {
-    case you
-    case opponent
-}
-
-// как начинается игра - нужно запомнить у кого какие карты на руках, определить чей первый ход

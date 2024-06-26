@@ -7,13 +7,25 @@
 
 import UIKit
 
-final class Field: UIView {
+protocol FieldViewDelegate: AnyObject {
+    func userMovedCard(at: Int, toCardAt: Int?)
+}
+
+final class FieldView: UIView, UIGestureRecognizerDelegate {
     
     let frameView: CGRect
+    weak var delegate: FieldViewDelegate?
+
+    private var defender: CurrentPlayer
     
-    private let cards: UIView = UIView()
-    private var trumpView = UIImageView()
-    private let set = CardsSet(
+    private var trumpView: CardView = CardView(face: nil)
+    private var selectedCardView = UIView(frame: .zero)
+    private var copySelectedCardView = UIView(frame: .zero)
+    
+    private var selectedCardIndex: Int? = nil
+    private var playedCardIndex: Int? = nil
+    
+    private let playingZoneSet = CardsSet(
         firstCard: CardView(face: nil),
         secondCard: CardView(face: nil),
         thirdCard: CardView(face: nil),
@@ -22,23 +34,154 @@ final class Field: UIView {
         sixthCard: CardView(face: nil)
     )
     
-    init(frameView: CGRect, handCards: [Card], opponentHandCards: [Card], trumpFace: UIImage) {
+    private var opponentHandSet = CardsSet(
+        firstCard: CardView(face: nil),
+        secondCard: CardView(face: nil),
+        thirdCard: CardView(face: nil),
+        fourthCard: CardView(face: nil),
+        fifthCard: CardView(face: nil),
+        sixthCard: CardView(face: nil)
+    )
+    
+    private var handSet = CardsSet(
+        firstCard: CardView(face: nil),
+        secondCard: CardView(face: nil),
+        thirdCard: CardView(face: nil),
+        fourthCard: CardView(face: nil),
+        fifthCard: CardView(face: nil),
+        sixthCard: CardView(face: nil)
+    )
+    
+    init(frameView: CGRect, handCards: [Card], opponentHandCards: [Card], trump: Card, currentPlayer: CurrentPlayer) {
         self.frameView = frameView
+        self.defender = currentPlayer
+        
         super.init(frame: .zero)
         backgroundColor = .systemGreen
-        configurePack(with: trumpFace)
+        configurePack(with: trump)
         configurePlayingZone()
         configureOpponentHandZone(opponentHandCards)
         configureHandZone(handCards)
+        addGestureRecognizerOnCards()
     }
     
     required init?(coder: NSCoder) {
         fatalError("init(coder:) has not been implemented")
     }
     
-    private func configurePack(with trump: UIImage) {
-        let backView = UIImageView(image: UIImage(named: "Back"))
-        trumpView.image = trump.rotate(radians: .pi / 2)
+    func putDownCard() {
+        copySelectedCardView.removeFromSuperview()
+
+        let emptyCard = CardView(face: nil)
+        emptyCard.frame = selectedCardView.frame
+
+        if defender == .opponent {
+            opponentHandSet.changeCard(at: selectedCardIndex!, to: emptyCard)
+            defender = .you
+        } else {
+            handSet.changeCard(at: selectedCardIndex!, to: emptyCard)
+            defender = .opponent
+        }
+
+        playingZoneSet.changeCard(at: playedCardIndex!, to: selectedCardView as! CardView)
+    }
+    
+    func cancelMove() {
+        copySelectedCardView.removeFromSuperview()
+    }
+    
+    private func addGestureRecognizerOnCards() {
+        var cardViews = [UIView]()
+        
+        for subview in subviews {
+            if subview is CardsSet {
+                let views = subview.subviews.filter {
+                    $0 is CardView
+                }
+                cardViews = cardViews + views
+            }
+        }
+        
+        for cardView in cardViews {
+            let panGesture = UIPanGestureRecognizer(
+                target: self,
+                action: #selector(handleTap)
+            )
+            
+            panGesture.delegate = self
+            cardView.addGestureRecognizer(panGesture)
+        }
+    }
+    
+    @objc private func handleTap(recognizer: UIPanGestureRecognizer) {
+        if recognizer.state == .began {
+            guard let view = recognizer.view else { return }
+            
+            selectedCardView = view
+            
+            switch defender {
+            case .opponent:
+                selectedCardIndex = opponentHandSet.playedCardIndex(at: CGPoint(x: view.center.x, y: view.center.y))
+            case.you:
+                selectedCardIndex = handSet.playedCardIndex(at: CGPoint(x: view.center.x, y: view.center.y))
+            }
+            
+            copySelectedCardView = view.snapshotView(afterScreenUpdates: true)!
+            copySelectedCardView.frame = convert(view.frame, from: view.superview)
+            addSubview(copySelectedCardView)
+        }
+        
+        if recognizer.state == .changed {
+            let translation = recognizer.translation(in: self)
+            
+            copySelectedCardView.center = CGPoint(
+                x: copySelectedCardView.center.x + translation.x,
+                y: copySelectedCardView.center.y + translation.y
+            )
+            
+            recognizer.setTranslation(CGPointZero, in: self)
+        }
+        
+        if recognizer.state == .ended {
+            
+            if playingZoneSet.frame.contains(CGPoint(
+                x: copySelectedCardView.center.x,
+                y: copySelectedCardView.center.y)
+            ) {
+                
+                copySelectedCardView.frame = playingZoneSet.convert(copySelectedCardView.frame, from: self)
+                
+                playedCardIndex = playingZoneSet.playedCardIndex(at: CGPoint(
+                    x: copySelectedCardView.center.x,
+                    y: copySelectedCardView.center.y)
+                )
+                
+                guard let selectedCardIndex = selectedCardIndex, let playedCardIndex = playedCardIndex else {
+                    copySelectedCardView.removeFromSuperview()
+                    return
+                }
+                
+                var selectedCardRelativeIndex: Int {
+                    switch defender {
+                    case .you:
+                        return handSet.calculateRelativeIndex(by: selectedCardIndex)!
+                    case .opponent:
+                        return opponentHandSet.calculateRelativeIndex(by: selectedCardIndex)!
+                    }
+                }
+                
+                let playedCardRelativeIndex = playingZoneSet.calculateRelativeIndex(by: playedCardIndex)
+                
+                delegate?.userMovedCard(at: selectedCardRelativeIndex, toCardAt: playedCardRelativeIndex)
+            } else {
+                copySelectedCardView.removeFromSuperview()
+            }
+        }
+    }
+    
+    private func configurePack(with trump: Card) {
+        let backView = CardView(face: UIImage(named: "Back"))
+        trumpView = CardView(face: trump.face)
         
         addSubview(trumpView)
         addSubview(backView)
@@ -61,19 +204,19 @@ final class Field: UIView {
     }
     
     private func configurePlayingZone() {
-        addSubview(set)
+        addSubview(playingZoneSet)
         
-        set.translatesAutoresizingMaskIntoConstraints = false
+        playingZoneSet.translatesAutoresizingMaskIntoConstraints = false
         NSLayoutConstraint.activate([
-            set.rightAnchor.constraint(equalTo: rightAnchor, constant: -30),
-            set.leftAnchor.constraint(equalTo: trumpView.rightAnchor, constant: 50),
-            set.topAnchor.constraint(equalTo: topAnchor, constant: frameView.height / 2.8),
-            set.bottomAnchor.constraint(equalTo: bottomAnchor, constant: -(frameView.height / 2.8))
+            playingZoneSet.rightAnchor.constraint(equalTo: rightAnchor, constant: -145),
+            playingZoneSet.leftAnchor.constraint(equalTo: trumpView.rightAnchor, constant: 50),
+            playingZoneSet.topAnchor.constraint(equalTo: topAnchor, constant: frameView.height / 2.8),
+            playingZoneSet.bottomAnchor.constraint(equalTo: bottomAnchor, constant: -(frameView.height / 2.8))
         ])
     }
     
     private func configureOpponentHandZone(_ cards: [Card]) {
-        let opponentSet = CardsSet(
+        opponentHandSet = CardsSet(
             firstCard: CardView(face: cards[0].face),
             secondCard: CardView(face: cards[1].face),
             thirdCard: CardView(face: cards[2].face),
@@ -81,19 +224,19 @@ final class Field: UIView {
             fifthCard: CardView(face: cards[4].face),
             sixthCard: CardView(face: cards[5].face)
         )
-        addSubview(opponentSet)
+        addSubview(opponentHandSet)
         
-        opponentSet.translatesAutoresizingMaskIntoConstraints = false
+        opponentHandSet.translatesAutoresizingMaskIntoConstraints = false
         NSLayoutConstraint.activate([
-            opponentSet.rightAnchor.constraint(equalTo: rightAnchor, constant: -30),
-            opponentSet.leftAnchor.constraint(equalTo: trumpView.rightAnchor, constant: 50),
-            opponentSet.topAnchor.constraint(equalTo: topAnchor, constant: 10),
-            opponentSet.bottomAnchor.constraint(equalTo: set.topAnchor,constant: -10)
+            opponentHandSet.rightAnchor.constraint(equalTo: rightAnchor, constant: -145),
+            opponentHandSet.leftAnchor.constraint(equalTo: trumpView.rightAnchor, constant: 50),
+            opponentHandSet.topAnchor.constraint(equalTo: topAnchor, constant: 10),
+            opponentHandSet.bottomAnchor.constraint(equalTo: playingZoneSet.topAnchor,constant: -10)
         ])
     }
     
     private func configureHandZone(_ cards: [Card]) {
-        let mySet = CardsSet(
+        handSet = CardsSet(
             firstCard: CardView(face: cards[0].face),
             secondCard: CardView(face: cards[1].face),
             thirdCard: CardView(face: cards[2].face),
@@ -101,14 +244,14 @@ final class Field: UIView {
             fifthCard: CardView(face: cards[4].face),
             sixthCard: CardView(face: cards[5].face)
         )
-        addSubview(mySet)
+        addSubview(handSet)
         
-        mySet.translatesAutoresizingMaskIntoConstraints = false
+        handSet.translatesAutoresizingMaskIntoConstraints = false
         NSLayoutConstraint.activate([
-            mySet.rightAnchor.constraint(equalTo: rightAnchor, constant: -30),
-            mySet.leftAnchor.constraint(equalTo: trumpView.rightAnchor, constant: 50),
-            mySet.bottomAnchor.constraint(equalTo: bottomAnchor, constant: -10),
-            mySet.topAnchor.constraint(equalTo: set.bottomAnchor,constant: 10)
+            handSet.rightAnchor.constraint(equalTo: rightAnchor, constant: -145),
+            handSet.leftAnchor.constraint(equalTo: trumpView.rightAnchor, constant: 50),
+            handSet.bottomAnchor.constraint(equalTo: bottomAnchor, constant: -10),
+            handSet.topAnchor.constraint(equalTo: playingZoneSet.bottomAnchor,constant: 10)
         ])
     }
 }
