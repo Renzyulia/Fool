@@ -8,13 +8,12 @@
 import UIKit
 
 final class CardsSet: UIView {
-    
-    private let firstCard: CardView
-    private let secondCard: CardView
-    private let thirdCard: CardView
-    private let fourthCard: CardView
-    private let fifthCard: CardView
-    private let sixthCard: CardView
+    private var firstCard: CardView
+    private var secondCard: CardView
+    private var thirdCard: CardView
+    private var fourthCard: CardView
+    private var fifthCard: CardView
+    private var sixthCard: CardView
     
     init(
         firstCard: CardView,
@@ -40,8 +39,59 @@ final class CardsSet: UIView {
         fatalError("init(coder:) has not been implemented")
     }
     
+    func playedCardIndex(at coordinates: CGPoint) -> Int? {
+        for item in 0..<subviews.count {
+            if subviews[item].frame.contains(CGPoint(x: coordinates.x, y: coordinates.y)) {
+                return item
+            }
+        }
+        return nil
+    }
+    
+    func calculateRelativeIndex(by index: Int) -> Int? {
+        var relativeIndex: Int?
+
+        for item in 0...index {
+            let cardView = subviews[item] as? CardView
+            
+            if cardView?.face != nil {
+                if relativeIndex == nil {
+                    relativeIndex = 0
+                } else {
+                    relativeIndex! += 1
+                }
+            }
+        }
+        return relativeIndex
+    }
+    
+    func changeCard(at index: Int, to newCard: CardView ) {
+    
+        subviews[index].removeFromSuperview()
+        
+        switch index {
+        case 0: firstCard = newCard; setFirstCard()
+        case 1: secondCard = newCard; setSecondCard()
+        case 2: thirdCard = newCard; setThirdCard()
+        case 3: fourthCard = newCard; setFourthCard()
+        case 4: fifthCard = newCard; setFifthCard()
+        case 5: sixthCard = newCard; setSixthCard()
+        default: return
+        }
+        
+    }
+    
     private func configureSet() {
-        addSubview(firstCard)
+        setFirstCard()
+        setSecondCard()
+        setThirdCard()
+        setFourthCard()
+        setFifthCard()
+        setSixthCard()
+    }
+    
+    private func setFirstCard() {
+        insertSubview(firstCard, at: 0)
         
         firstCard.translatesAutoresizingMaskIntoConstraints = false
         NSLayoutConstraint.activate([
@@ -50,54 +100,64 @@ final class CardsSet: UIView {
             firstCard.leftAnchor.constraint(equalTo: leftAnchor),
             firstCard.centerYAnchor.constraint(equalTo: centerYAnchor)
         ])
-        
-        addSubview(secondCard)
+    }
+    
+    private func setSecondCard() {
+        insertSubview(secondCard, at: 1)
         
         secondCard.translatesAutoresizingMaskIntoConstraints = false
         NSLayoutConstraint.activate([
             secondCard.widthAnchor.constraint(equalToConstant: 74),
             secondCard.heightAnchor.constraint(equalToConstant: 111),
-            secondCard.leftAnchor.constraint(equalTo: firstCard.rightAnchor, constant: 5),
+            secondCard.leftAnchor.constraint(equalTo: leftAnchor, constant: 79),
             secondCard.centerYAnchor.constraint(equalTo: centerYAnchor)
         ])
-        
-        addSubview(thirdCard)
+    }
+    
+    private func setThirdCard() {
+        insertSubview(thirdCard, at: 2)
         
         thirdCard.translatesAutoresizingMaskIntoConstraints = false
         NSLayoutConstraint.activate([
             thirdCard.widthAnchor.constraint(equalToConstant: 74),
             thirdCard.heightAnchor.constraint(equalToConstant: 111),
             thirdCard.centerYAnchor.constraint(equalTo: centerYAnchor),
-            thirdCard.leftAnchor.constraint(equalTo: secondCard.rightAnchor, constant: 5)
+            thirdCard.leftAnchor.constraint(equalTo: leftAnchor, constant: 158)
         ])
-        
-        addSubview(fourthCard)
+    }
+    
+    private func setFourthCard() {
+        insertSubview(fourthCard, at: 3)
         
         fourthCard.translatesAutoresizingMaskIntoConstraints = false
         NSLayoutConstraint.activate([
             fourthCard.widthAnchor.constraint(equalToConstant: 74),
             fourthCard.heightAnchor.constraint(equalToConstant: 111),
-            fourthCard.leftAnchor.constraint(equalTo: thirdCard.rightAnchor, constant: 5),
+            fourthCard.leftAnchor.constraint(equalTo: leftAnchor, constant: 237),
             fourthCard.centerYAnchor.constraint(equalTo: centerYAnchor)
         ])
-        
-        addSubview(fifthCard)
+    }
+    
+    private func setFifthCard() {
+        insertSubview(fifthCard, at: 4)
         
         fifthCard.translatesAutoresizingMaskIntoConstraints = false
         NSLayoutConstraint.activate([
             fifthCard.widthAnchor.constraint(equalToConstant: 74),
             fifthCard.heightAnchor.constraint(equalToConstant: 111),
-            fifthCard.leftAnchor.constraint(equalTo: fourthCard.rightAnchor, constant: 5),
+            fifthCard.leftAnchor.constraint(equalTo: leftAnchor, constant: 316),
             fifthCard.centerYAnchor.constraint(equalTo: centerYAnchor)
         ])
-        
-        addSubview(sixthCard)
+    }
+    
+    private func setSixthCard() {
+        insertSubview(sixthCard, at: 5)
         
         sixthCard.translatesAutoresizingMaskIntoConstraints = false
         NSLayoutConstraint.activate([
             sixthCard.widthAnchor.constraint(equalToConstant: 74),
             sixthCard.heightAnchor.constraint(equalToConstant: 111),
-            sixthCard.leftAnchor.constraint(equalTo: fifthCard.rightAnchor, constant: 5),
+            sixthCard.leftAnchor.constraint(equalTo: leftAnchor, constant: 395),
             sixthCard.centerYAnchor.constraint(equalTo: centerYAnchor)
         ])
     }
