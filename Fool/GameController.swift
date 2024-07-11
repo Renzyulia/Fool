@@ -12,8 +12,10 @@ enum CurrentPlayer {
     case opponent
 }
 
-final class GameController: FieldViewDelegate {
+final class GameController: CardsDataSourceDelegate {
+    
     var field: FieldView? = nil
+    var cardsDataSource: CardsDataSource? = nil
     var pack: [Card] = []
     var trump: Card? = nil
     var handCards: [Card] = []
@@ -26,65 +28,41 @@ final class GameController: FieldViewDelegate {
         defineTrump()
         dealCards()
         whoseGo()
-        field = FieldView(
+
+        let field = FieldView(
             frameView: frame,
             handCards: handCards,
             opponentHandCards: opponentHandCards,
-            trump: trump ?? Card(suit: .clubs, denomination: .six),
-            currentPlayer: currentPlayer
+            trump: trump ?? Card(suit: .clubs, denomination: .six)
         )
-        field?.delegate = self
+        self.field = field
+        
+        let cardsDataSource = CardsDataSource(
+            fieldView: field,
+            currentPlayer: currentPlayer,
+            opponentHandCards: opponentHandCards,
+            handCards: handCards
+        )
+        self.cardsDataSource = cardsDataSource
+        
+        field.cardDataSource = cardsDataSource
+        cardsDataSource.delegate = self
+        
     }
     
-    func userMovedCard(at selectedCardIndex: Int, toCardAt: Int?) {
-        
-        let selectedCard: Card
-        
-        if currentPlayer == .opponent {
-            selectedCard = opponentHandCards[selectedCardIndex]
-        } else {
-            selectedCard = handCards[selectedCardIndex]
-        }
-        
-        guard let playedCardIndex = toCardAt else {
-            playingCards.insert(selectedCard, at: 0)
-
-            switch currentPlayer {
-            case .opponent:
-                opponentHandCards.remove(at: selectedCardIndex)
-                currentPlayer = .you
-                field?.putDownCard()
-            case .you:
-                handCards.remove(at: selectedCardIndex)
-                currentPlayer = .opponent
-                field?.putDownCard()
-            }
-            
+    func playerMoved(card: Card, to playedCard: Card?) {
+        guard let playedCard = playedCard else {
+            cardsDataSource?.putDownCard()
             return
         }
         
-        let playedCard = playingCards[playedCardIndex]
-        
-        if selectedCard.canBeat(playedCard) {
-            
-            playingCards.remove(at: playedCardIndex)
-            playingCards.insert(selectedCard, at: playedCardIndex)
-            
-            switch currentPlayer {
-            case .opponent:
-                opponentHandCards.remove(at: selectedCardIndex)
-                currentPlayer = .you
-                field?.putDownCard()
-            case .you:
-                handCards.remove(at: selectedCardIndex)
-                currentPlayer = .opponent
-                field?.putDownCard()
-            }
+        if card.canBeat(playedCard) {
+            cardsDataSource?.putDownCard()
         } else {
-            field?.cancelMove()
+            cardsDataSource?.cancelMove()
         }
     }
-    
+   
     private func createPack() {
     pack = [
         Card(suit: .clubs, denomination: .six),
@@ -161,16 +139,18 @@ final class GameController: FieldViewDelegate {
         
         if handCards.contains(where: { card in card.isTrump }) && !opponentHandCards.contains(where: { card in card.isTrump }) {
             currentPlayer = .you
+            return
         }
         
         if !handCards.contains(where: { card in card.isTrump }) && opponentHandCards.contains(where: { card in card.isTrump }) {
             currentPlayer = .opponent
+            return
         }
         
         if handCards.contains(where: { card in card.isTrump }) && opponentHandCards.contains(where: { card in card.isTrump }) {
             
-            var youMinDenomination: Denomination = .six
-            var opponentMinDenomination: Denomination = .six
+            var youMinDenomination: Denomination = .ace
+            var opponentMinDenomination: Denomination = .ace
             
             for card in handCards {
                 if card.isTrump {
@@ -190,8 +170,10 @@ final class GameController: FieldViewDelegate {
             
             if youMinDenomination.rawValue < opponentMinDenomination.rawValue {
                 currentPlayer = .you
+                return
             } else {
                 currentPlayer = .opponent
+                return
             }
         }
     }

@@ -7,23 +7,19 @@
 
 import UIKit
 
-protocol FieldViewDelegate: AnyObject {
-    func userMovedCard(at: Int, toCardAt: Int?)
+protocol CardDataSource: AnyObject {
+    func didMoveCard(at: Int, to: Int)
 }
 
 final class FieldView: UIView, UIGestureRecognizerDelegate {
     
     let frameView: CGRect
-    weak var delegate: FieldViewDelegate?
+    weak var cardDataSource: CardDataSource?
 
-    private var defender: CurrentPlayer
-    
     private var trumpView: CardView = CardView(face: nil)
     private var selectedCardView = UIView(frame: .zero)
     private var copySelectedCardView = UIView(frame: .zero)
-    
-    private var selectedCardIndex: Int? = nil
-    private var playedCardIndex: Int? = nil
+    var selectedCardIndex: Int? = nil
     
     private let playingZoneSet = CardsSet(
         firstCard: CardView(face: nil),
@@ -52,9 +48,8 @@ final class FieldView: UIView, UIGestureRecognizerDelegate {
         sixthCard: CardView(face: nil)
     )
     
-    init(frameView: CGRect, handCards: [Card], opponentHandCards: [Card], trump: Card, currentPlayer: CurrentPlayer) {
+    init(frameView: CGRect, handCards: [Card], opponentHandCards: [Card], trump: Card) {
         self.frameView = frameView
-        self.defender = currentPlayer
         
         super.init(frame: .zero)
         backgroundColor = .systemGreen
@@ -69,21 +64,26 @@ final class FieldView: UIView, UIGestureRecognizerDelegate {
         fatalError("init(coder:) has not been implemented")
     }
     
-    func putDownCard() {
+    func moveHandCard(at selectedCardIndex: Int, to playedCardIndex: Int) {
         copySelectedCardView.removeFromSuperview()
-
+        
         let emptyCard = CardView(face: nil)
         emptyCard.frame = selectedCardView.frame
-
-        if defender == .opponent {
-            opponentHandSet.changeCard(at: selectedCardIndex!, to: emptyCard)
-            defender = .you
-        } else {
-            handSet.changeCard(at: selectedCardIndex!, to: emptyCard)
-            defender = .opponent
-        }
-
-        playingZoneSet.changeCard(at: playedCardIndex!, to: selectedCardView as! CardView)
+        
+        handSet.changeCard(at: selectedCardIndex, to: emptyCard)
+        
+        playingZoneSet.changeCard(at: playedCardIndex, to: selectedCardView as! CardView)
+    }
+    
+    func moveOpponentCard(at selectedCardIndex: Int, to playedCardIndex: Int) {
+        copySelectedCardView.removeFromSuperview()
+        
+        let emptyCard = CardView(face: nil)
+        emptyCard.frame = selectedCardView.frame
+        
+        opponentHandSet.changeCard(at: selectedCardIndex, to: emptyCard)
+        
+        playingZoneSet.changeCard(at: playedCardIndex, to: selectedCardView as! CardView)
     }
     
     func cancelMove() {
@@ -119,10 +119,9 @@ final class FieldView: UIView, UIGestureRecognizerDelegate {
             
             selectedCardView = view
             
-            switch defender {
-            case .opponent:
-                selectedCardIndex = opponentHandSet.playedCardIndex(at: CGPoint(x: view.center.x, y: view.center.y))
-            case.you:
+            if let selectedCardIndex = opponentHandSet.playedCardIndex(at: CGPoint(x: view.center.x, y: view.center.y)) {
+                self.selectedCardIndex = selectedCardIndex
+            } else {
                 selectedCardIndex = handSet.playedCardIndex(at: CGPoint(x: view.center.x, y: view.center.y))
             }
             
@@ -151,7 +150,7 @@ final class FieldView: UIView, UIGestureRecognizerDelegate {
                 
                 copySelectedCardView.frame = playingZoneSet.convert(copySelectedCardView.frame, from: self)
                 
-                playedCardIndex = playingZoneSet.playedCardIndex(at: CGPoint(
+                let playedCardIndex = playingZoneSet.playedCardIndex(at: CGPoint(
                     x: copySelectedCardView.center.x,
                     y: copySelectedCardView.center.y)
                 )
@@ -160,19 +159,8 @@ final class FieldView: UIView, UIGestureRecognizerDelegate {
                     copySelectedCardView.removeFromSuperview()
                     return
                 }
-                
-                var selectedCardRelativeIndex: Int {
-                    switch defender {
-                    case .you:
-                        return handSet.calculateRelativeIndex(by: selectedCardIndex)!
-                    case .opponent:
-                        return opponentHandSet.calculateRelativeIndex(by: selectedCardIndex)!
-                    }
-                }
-                
-                let playedCardRelativeIndex = playingZoneSet.calculateRelativeIndex(by: playedCardIndex)
-                
-                delegate?.userMovedCard(at: selectedCardRelativeIndex, toCardAt: playedCardRelativeIndex)
+
+                cardDataSource?.didMoveCard(at: selectedCardIndex, to: playedCardIndex)
             } else {
                 copySelectedCardView.removeFromSuperview()
             }
