@@ -48,23 +48,6 @@ final class CardsSet: UIView {
         return nil
     }
     
-    func calculateRelativeIndex(by index: Int) -> Int? {
-        var relativeIndex: Int?
-
-        for item in 0...index {
-            let cardView = subviews[item] as? CardView
-            
-            if cardView?.face != nil {
-                if relativeIndex == nil {
-                    relativeIndex = 0
-                } else {
-                    relativeIndex! += 1
-                }
-            }
-        }
-        return relativeIndex
-    }
-    
     func changeCard(at index: Int, to newCard: CardView ) {
     
         subviews[index].removeFromSuperview()

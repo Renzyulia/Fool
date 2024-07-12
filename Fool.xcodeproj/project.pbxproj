@@ -19,6 +19,7 @@
 		1940F6652BFFD05A00F50C39 /* UIImage+rotate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1940F6642BFFD05A00F50C39 /* UIImage+rotate.swift */; };
 		1940F6672BFFD0DA00F50C39 /* FieldView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1940F6662BFFD0DA00F50C39 /* FieldView.swift */; };
 		1940F6692BFFD13A00F50C39 /* CardsSet.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1940F6682BFFD13A00F50C39 /* CardsSet.swift */; };
+		1940F66B2C3FBEA100F50C39 /* CardsDataSource.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1940F66A2C3FBEA100F50C39 /* CardsDataSource.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -36,6 +37,7 @@
 		1940F6642BFFD05A00F50C39 /* UIImage+rotate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "UIImage+rotate.swift"; sourceTree = "<group>"; };
 		1940F6662BFFD0DA00F50C39 /* FieldView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FieldView.swift; sourceTree = "<group>"; };
 		1940F6682BFFD13A00F50C39 /* CardsSet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CardsSet.swift; sourceTree = "<group>"; };
+		1940F66A2C3FBEA100F50C39 /* CardsDataSource.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CardsDataSource.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -75,6 +77,7 @@
 				1940F6472BAB2E6C00F50C39 /* SceneDelegate.swift */,
 				1940F6492BAB2E6C00F50C39 /* GameViewController.swift */,
 				1940F6592BF9F93E00F50C39 /* GameController.swift */,
+				1940F66A2C3FBEA100F50C39 /* CardsDataSource.swift */,
 				1940F64B2BAB2E6C00F50C39 /* Main.storyboard */,
 				1940F64E2BAB2E6D00F50C39 /* Assets.xcassets */,
 				1940F6502BAB2E6D00F50C39 /* LaunchScreen.storyboard */,
@@ -188,6 +191,7 @@
 				1940F65D2BFFCEA200F50C39 /* CardView.swift in Sources */,
 				1940F6462BAB2E6C00F50C39 /* AppDelegate.swift in Sources */,
 				1940F6672BFFD0DA00F50C39 /* FieldView.swift in Sources */,
+				1940F66B2C3FBEA100F50C39 /* CardsDataSource.swift in Sources */,
 				1940F6482BAB2E6C00F50C39 /* SceneDelegate.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
