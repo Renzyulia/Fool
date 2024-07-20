@@ -9,6 +9,7 @@ import UIKit
 
 protocol CardsDataSourceDelegate: AnyObject {
     func playerMoved(card: Card, to: Card?)
+    func tookCard(at: Int, player: CurrentPlayer)
 }
 
 final class CardsDataSource: CardDataSource {
@@ -16,12 +17,14 @@ final class CardsDataSource: CardDataSource {
     
     private let fieldView: FieldView
     private var currentPlayer: CurrentPlayer
-    private var opponentHandCards: [Card?]
-    private var handCards: [Card?]
+    var opponentHandCards: [Card?]
+    var handCards: [Card?]
     private var playingCards: [Card?] = [nil, nil, nil, nil, nil, nil]
     
     private var selectedCardIndex = 0
     private var playedCardIndex = 0
+    
+    private var addedCardIndex = 0
     
     init(fieldView: FieldView, currentPlayer: CurrentPlayer, opponentHandCards: [Card], handCards: [Card]) {
         self.fieldView = fieldView
@@ -47,26 +50,49 @@ final class CardsDataSource: CardDataSource {
         delegate?.playerMoved(card: selectedCard, to: playedCard)
     }
     
-    func putDownCard() {
-        switch currentPlayer {
-        case .you:
-            fieldView.moveHandCard(at: selectedCardIndex, to: playedCardIndex)
-            let selectedCard = handCards[selectedCardIndex]
-            handCards[selectedCardIndex] = nil
-            playingCards.remove(at: playedCardIndex)
-            playingCards.insert(selectedCard, at: playedCardIndex)
-            currentPlayer = .opponent
-        case .opponent:
-            fieldView.moveOpponentCard(at: selectedCardIndex, to: playedCardIndex)
-            let selectedCard = opponentHandCards[selectedCardIndex]
-            opponentHandCards[selectedCardIndex] = nil
-            playingCards.remove(at: playedCardIndex)
-            playingCards.insert(selectedCard, at: playedCardIndex)
-            currentPlayer = .you
-        }
+    func putDownHandCard() {
+        fieldView.moveHandCard(at: selectedCardIndex, to: playedCardIndex)
+        
+        let selectedCard = handCards[selectedCardIndex]
+        handCards[selectedCardIndex] = nil
+        playingCards.remove(at: playedCardIndex)
+        playingCards.insert(selectedCard, at: playedCardIndex)
+        
+        currentPlayer = .opponent
+    }
+    
+    func putDownOpponentCard() {
+        fieldView.moveOpponentCard(at: selectedCardIndex, to: playedCardIndex)
+        
+        let selectedCard = opponentHandCards[selectedCardIndex]
+        opponentHandCards[selectedCardIndex] = nil
+        playingCards.remove(at: playedCardIndex)
+        playingCards.insert(selectedCard, at: playedCardIndex)
+        
+        currentPlayer = .you
     }
     
     func cancelMove() {
         fieldView.cancelMove()
+    }
+    
+    func tookCardToOpponentHand(at index: Int) {
+        addedCardIndex = index
+        delegate?.tookCard(at: index, player: .opponent)
+    }
+    
+    func tookCardToHand(at index: Int) {
+        addedCardIndex = index
+        delegate?.tookCard(at: index, player: .you)
+    }
+    
+    func addToHand(card: Card) {
+        handCards[addedCardIndex] = card
+        fieldView.addToHandSet(card: card, at: addedCardIndex)
+    }
+    
+    func addToOpponentHand(card: Card) {
+        opponentHandCards[addedCardIndex] = card
+        fieldView.addToOpponentHandSet(card: card, at: addedCardIndex)
     }
 }

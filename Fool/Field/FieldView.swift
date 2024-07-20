@@ -9,6 +9,8 @@ import UIKit
 
 protocol CardDataSource: AnyObject {
     func didMoveCard(at: Int, to: Int)
+    func tookCardToHand(at: Int)
+    func tookCardToOpponentHand(at: Int)
 }
 
 final class FieldView: UIView, UIGestureRecognizerDelegate {
@@ -16,6 +18,7 @@ final class FieldView: UIView, UIGestureRecognizerDelegate {
     let frameView: CGRect
     weak var cardDataSource: CardDataSource?
 
+    private var packView: CardView = CardView(face: UIImage(named: "Back")!)
     private var trumpView: CardView = CardView(face: nil)
     private var selectedCardView = UIView(frame: .zero)
     private var copySelectedCardView = UIView(frame: .zero)
@@ -57,7 +60,8 @@ final class FieldView: UIView, UIGestureRecognizerDelegate {
         configurePlayingZone()
         configureOpponentHandZone(opponentHandCards)
         configureHandZone(handCards)
-        addGestureRecognizerOnCards()
+        addGestureRecognizerToCards()
+        addGestureRecognizerToPack()
     }
     
     required init?(coder: NSCoder) {
@@ -90,7 +94,7 @@ final class FieldView: UIView, UIGestureRecognizerDelegate {
         copySelectedCardView.removeFromSuperview()
     }
     
-    private func addGestureRecognizerOnCards() {
+    private func addGestureRecognizerToCards() {
         var cardViews = [UIView]()
         
         for subview in subviews {
@@ -105,7 +109,7 @@ final class FieldView: UIView, UIGestureRecognizerDelegate {
         for cardView in cardViews {
             let panGesture = UIPanGestureRecognizer(
                 target: self,
-                action: #selector(handleTap)
+                action: #selector(handleTapToCard)
             )
             
             panGesture.delegate = self
@@ -113,7 +117,7 @@ final class FieldView: UIView, UIGestureRecognizerDelegate {
         }
     }
     
-    @objc private func handleTap(recognizer: UIPanGestureRecognizer) {
+    @objc private func handleTapToCard(recognizer: UIPanGestureRecognizer) {
         if recognizer.state == .began {
             guard let view = recognizer.view else { return }
             
@@ -142,7 +146,6 @@ final class FieldView: UIView, UIGestureRecognizerDelegate {
         }
         
         if recognizer.state == .ended {
-            
             if playingZoneSet.frame.contains(CGPoint(
                 x: copySelectedCardView.center.x,
                 y: copySelectedCardView.center.y)
@@ -167,26 +170,104 @@ final class FieldView: UIView, UIGestureRecognizerDelegate {
         }
     }
     
+    private func addGestureRecognizerToPack() {
+        let panGesture = UIPanGestureRecognizer(
+            target: self,
+            action: #selector(handleTapToPack)
+        )
+        panGesture.delegate = self
+        subviews[1].addGestureRecognizer(panGesture)
+    }
+    
+    private func addGestureRecognizerToTrump() {
+        let panGesture = UIPanGestureRecognizer(
+            target: self,
+            action: #selector(handleTapToPack)
+        )
+        panGesture.delegate = self
+        subviews[0].addGestureRecognizer(panGesture)
+    }
+    
+    @objc private func handleTapToPack(recognizer: UIPanGestureRecognizer) {
+        if recognizer.state == .began {
+            guard let view = recognizer.view else { return }
+            
+            copySelectedCardView = view.snapshotView(afterScreenUpdates: true)!
+            copySelectedCardView.frame = convert(view.frame, from: view.superview)
+            addSubview(copySelectedCardView)
+        }
+        
+        if recognizer.state == .changed {
+            let translation = recognizer.translation(in: self)
+            
+            copySelectedCardView.center = CGPoint(
+                x: copySelectedCardView.center.x + translation.x,
+                y: copySelectedCardView.center.y + translation.y
+            )
+            
+            recognizer.setTranslation(CGPointZero, in: self)
+        }
+        
+        if recognizer.state == .ended {
+            copySelectedCardView.frame = opponentHandSet.convert(copySelectedCardView.frame, from: self)
+            
+            if let cardTakenIndex = opponentHandSet.playedCardIndex(at: CGPoint(
+                x: copySelectedCardView.center.x,
+                y: copySelectedCardView.center.y)) {
+                cardDataSource?.tookCardToOpponentHand(at: cardTakenIndex)
+            } else {
+                copySelectedCardView.frame = handSet.convert(copySelectedCardView.frame, from: opponentHandSet)
+                
+                if let cardTakenIndex = handSet.playedCardIndex(at: CGPoint(
+                    x: copySelectedCardView.center.x,
+                    y: copySelectedCardView.center.y)) {
+                    cardDataSource?.tookCardToHand(at: cardTakenIndex)
+                } else {
+                    copySelectedCardView.removeFromSuperview()
+                }
+            }
+        }
+    }
+    
+    func addToHandSet(card: Card, at index: Int) { // может тут стоит не всю карту передавать, а только картинку?
+        copySelectedCardView.removeFromSuperview()
+        handSet.changeCard(at: index, to: CardView(face: card.face))
+    }
+    
+    func addToOpponentHandSet(card: Card, at index: Int) {
+        copySelectedCardView.removeFromSuperview()
+        opponentHandSet.changeCard(at: index, to: CardView(face: card.face))
+    }
+    
+    func showEmptyTrump() {
+        trumpView.isHidden = true
+    }
+    
+    func showEmptyPack() {
+        packView.isHidden = true
+        addGestureRecognizerToTrump()
+    }
+    
     private func configurePack(with trump: Card) {
-        let backView = CardView(face: UIImage(named: "Back"))
-        trumpView = CardView(face: trump.face)
+        let trumpFace = trump.face.rotate(radians: .pi / 2)
+        trumpView = CardView(face: trumpFace)
         
         addSubview(trumpView)
-        addSubview(backView)
+        addSubview(packView)
         
-        backView.translatesAutoresizingMaskIntoConstraints = false
+        packView.translatesAutoresizingMaskIntoConstraints = false
         NSLayoutConstraint.activate([
-            backView.leftAnchor.constraint(equalTo: leftAnchor, constant: 50),
-            backView.rightAnchor.constraint(equalTo: rightAnchor, constant: -720),
-            backView.topAnchor.constraint(equalTo: topAnchor, constant: frameView.height / 2.8),
-            backView.bottomAnchor.constraint(equalTo: bottomAnchor, constant: -(frameView.height / 2.8))
+            packView.leftAnchor.constraint(equalTo: leftAnchor, constant: 50),
+            packView.rightAnchor.constraint(equalTo: rightAnchor, constant: -720),
+            packView.topAnchor.constraint(equalTo: topAnchor, constant: frameView.height / 2.8),
+            packView.bottomAnchor.constraint(equalTo: bottomAnchor, constant: -(frameView.height / 2.8))
         ])
         
         trumpView.translatesAutoresizingMaskIntoConstraints = false
         NSLayoutConstraint.activate([
-            trumpView.topAnchor.constraint(equalTo: backView.topAnchor, constant: 18.5),
-            trumpView.bottomAnchor.constraint(equalTo: backView.bottomAnchor, constant: -18.5),
-            trumpView.leftAnchor.constraint(equalTo: backView.leftAnchor),
+            trumpView.topAnchor.constraint(equalTo: packView.topAnchor, constant: 18.5),
+            trumpView.bottomAnchor.constraint(equalTo: packView.bottomAnchor, constant: -18.5),
+            trumpView.leftAnchor.constraint(equalTo: packView.leftAnchor),
             trumpView.rightAnchor.constraint(equalTo: rightAnchor, constant: -665)
         ])
     }

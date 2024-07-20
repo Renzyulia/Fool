@@ -9,7 +9,7 @@ import UIKit
 
 final class CardView: UIView {
     
-    let face: UIImage?
+    var face: UIImage?
     
     init(face: UIImage?) {
         self.face = face

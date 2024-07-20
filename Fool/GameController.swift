@@ -52,14 +52,66 @@ final class GameController: CardsDataSourceDelegate {
     
     func playerMoved(card: Card, to playedCard: Card?) {
         guard let playedCard = playedCard else {
-            cardsDataSource?.putDownCard()
+            switch currentPlayer {
+            case .you:
+                cardsDataSource?.putDownHandCard()
+                currentPlayer = .opponent
+            case .opponent:
+                cardsDataSource?.putDownOpponentCard()
+                currentPlayer = .you
+            }
+            
             return
         }
         
         if card.canBeat(playedCard) {
-            cardsDataSource?.putDownCard()
+            switch currentPlayer {
+            case .you:
+                cardsDataSource?.putDownHandCard()
+                currentPlayer = .opponent
+            case .opponent:
+                cardsDataSource?.putDownOpponentCard()
+                currentPlayer = .you
+            }
         } else {
             cardsDataSource?.cancelMove()
+        }
+    }
+    
+    func tookCard(at index: Int, player: CurrentPlayer) {
+        if pack.isEmpty {
+            handleAddedCard(trump!, at: index, player: player)
+            field?.showEmptyTrump()
+        } else {
+            let addedCard = pack.removeFirst()
+            handleAddedCard(addedCard, at: index, player: player)
+            
+            if pack.isEmpty {
+                field?.showEmptyPack()
+            }
+        }
+    }
+    
+    private func handleAddedCard(_ addedCard: Card, at index: Int, player: CurrentPlayer) {
+        guard let cardsDataSource = cardsDataSource else { return }
+        
+        switch currentPlayer {
+        case .you:
+            if player == .you && cardsDataSource.handCards[index] == nil {
+                cardsDataSource.addToHand(card: addedCard)
+            } else if player == .opponent && !cardsDataSource.handCards.contains(where: { card in card == nil }) && cardsDataSource.opponentHandCards[index] == nil {
+                cardsDataSource.addToOpponentHand(card: addedCard)
+            } else {
+                cardsDataSource.cancelMove()
+            }
+        case .opponent:
+            if player == .opponent && cardsDataSource.opponentHandCards[index] == nil {
+                cardsDataSource.addToOpponentHand(card: addedCard)
+            } else if player == .you && !cardsDataSource.opponentHandCards.contains(where: { card in card == nil }) && cardsDataSource.handCards[index] == nil {
+                cardsDataSource.addToHand(card: addedCard)
+            } else {
+                cardsDataSource.cancelMove()
+            }
         }
     }
    
