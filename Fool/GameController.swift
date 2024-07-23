@@ -12,7 +12,7 @@ enum CurrentPlayer {
     case opponent
 }
 
-final class GameController: CardsDataSourceDelegate {
+final class GameController: CardsDataSourceDelegate, FieldViewDelegate {
     
     var field: FieldView? = nil
     var cardsDataSource: CardsDataSource? = nil
@@ -36,6 +36,7 @@ final class GameController: CardsDataSourceDelegate {
             trump: trump ?? Card(suit: .clubs, denomination: .six)
         )
         self.field = field
+        field.delegate = self
         
         let cardsDataSource = CardsDataSource(
             fieldView: field,
@@ -90,6 +91,81 @@ final class GameController: CardsDataSourceDelegate {
                 field?.showEmptyPack()
             }
         }
+    }
+    
+    func playerSwipedPlayingSet(to direction: UISwipeGestureRecognizer.Direction) {
+        if direction == .right {
+            cardsDataSource?.deleteCardInPlayingSet()
+        }
+        
+        if direction == .left {
+            switch currentPlayer {
+            case .you:
+                cardsDataSource?.abandonToHandCards()
+            case .opponent:
+                cardsDataSource?.abandonToOpponentHandCards()
+            }
+        }
+    }
+    
+    func recognizerShouldBegin(_ gestureRecognizer: UIGestureRecognizer) -> Bool {
+        guard let cardsDataSource = cardsDataSource else { return false }
+        
+        var handCardsCount = 0
+        var opponentHandsCount = 0
+        
+        for card in cardsDataSource.handCards {
+            if card != nil {
+                handCardsCount += 1
+            }
+        }
+        
+        for card in cardsDataSource.opponentHandCards {
+            if card != nil {
+                opponentHandsCount += 1
+            }
+        }
+
+        if gestureRecognizer is UISwipeGestureRecognizer {
+            let recognizer = gestureRecognizer as! UISwipeGestureRecognizer
+            
+            if recognizer.direction == .right {
+                if handCardsCount == opponentHandsCount {
+                    return true
+                } else {
+                    return false
+                }
+            }
+            
+            if recognizer.direction == .left {
+                if handCardsCount != opponentHandsCount {
+                    return true
+                } else {
+                    return false
+                }
+            }
+        }
+        
+        if gestureRecognizer is UIPanGestureRecognizer {
+            guard let view = gestureRecognizer.view, let field = field else { return false }
+            
+            let copySelectedCardView = view.snapshotView(afterScreenUpdates: true)!
+            copySelectedCardView.frame = field.convert(view.frame, from: view.superview)
+            
+            if currentPlayer == .opponent && field.opponentHandSet.frame.contains(CGPoint(x: copySelectedCardView.center.x, y: copySelectedCardView.center.y)) {
+                return true
+            }
+            
+            if currentPlayer == .you && field.handSet.frame.contains(CGPoint(x: copySelectedCardView.center.x, y: copySelectedCardView.center.y)) {
+                return true
+            }
+            
+            if field.playingZoneSet.frame.contains(CGPoint(x: copySelectedCardView.center.x, y: copySelectedCardView.center.y)) {
+                return false
+            }
+        }
+        
+        return false
     }
     
     private func handleAddedCard(_ addedCard: Card, at index: Int, player: CurrentPlayer) {

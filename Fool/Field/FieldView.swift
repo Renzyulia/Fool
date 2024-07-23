@@ -11,12 +11,18 @@ protocol CardDataSource: AnyObject {
     func didMoveCard(at: Int, to: Int)
     func tookCardToHand(at: Int)
     func tookCardToOpponentHand(at: Int)
+    func swipedPlayingSet(to: UISwipeGestureRecognizer.Direction)
+}
+
+protocol FieldViewDelegate: AnyObject {
+    func recognizerShouldBegin(_ gestureRecognizer: UIGestureRecognizer) -> Bool
 }
 
 final class FieldView: UIView, UIGestureRecognizerDelegate {
     
     let frameView: CGRect
     weak var cardDataSource: CardDataSource?
+    weak var delegate: FieldViewDelegate?
 
     private var packView: CardView = CardView(face: UIImage(named: "Back")!)
     private var trumpView: CardView = CardView(face: nil)
@@ -24,7 +30,7 @@ final class FieldView: UIView, UIGestureRecognizerDelegate {
     private var copySelectedCardView = UIView(frame: .zero)
     var selectedCardIndex: Int? = nil
     
-    private let playingZoneSet = CardsSet(
+    let playingZoneSet = CardsSet(
         firstCard: CardView(face: nil),
         secondCard: CardView(face: nil),
         thirdCard: CardView(face: nil),
@@ -33,7 +39,7 @@ final class FieldView: UIView, UIGestureRecognizerDelegate {
         sixthCard: CardView(face: nil)
     )
     
-    private var opponentHandSet = CardsSet(
+    var opponentHandSet = CardsSet(
         firstCard: CardView(face: nil),
         secondCard: CardView(face: nil),
         thirdCard: CardView(face: nil),
@@ -42,7 +48,7 @@ final class FieldView: UIView, UIGestureRecognizerDelegate {
         sixthCard: CardView(face: nil)
     )
     
-    private var handSet = CardsSet(
+    var handSet = CardsSet(
         firstCard: CardView(face: nil),
         secondCard: CardView(face: nil),
         thirdCard: CardView(face: nil),
@@ -62,6 +68,7 @@ final class FieldView: UIView, UIGestureRecognizerDelegate {
         configureHandZone(handCards)
         addGestureRecognizerToCards()
         addGestureRecognizerToPack()
+        addGestureRecognizerForDiscardPile()
     }
     
     required init?(coder: NSCoder) {
@@ -92,6 +99,35 @@ final class FieldView: UIView, UIGestureRecognizerDelegate {
     
     func cancelMove() {
         copySelectedCardView.removeFromSuperview()
+    }
+    
+    func addToHandSet(card: Card, at index: Int) { // может тут стоит не всю карту передавать, а только картинку?
+        copySelectedCardView.removeFromSuperview()
+        handSet.changeCard(at: index, to: CardView(face: card.face))
+    }
+    
+    func addToOpponentHandSet(card: Card, at index: Int) {
+        copySelectedCardView.removeFromSuperview()
+        opponentHandSet.changeCard(at: index, to: CardView(face: card.face))
+    }
+    
+    func showEmptyTrump() {
+        trumpView.isHidden = true
+    }
+    
+    func showEmptyPack() {
+        packView.isHidden = true
+        addGestureRecognizerToTrump()
+    }
+    
+    func cleanPlayingZone() {
+        for index in 0...5 {
+            playingZoneSet.changeCard(at: index, to: CardView(face: nil))
+        }
+    }
+    
+    override func gestureRecognizerShouldBegin(_ gestureRecognizer: UIGestureRecognizer) -> Bool {
+        return delegate?.recognizerShouldBegin(gestureRecognizer) ?? false
     }
     
     private func addGestureRecognizerToCards() {
@@ -229,23 +265,34 @@ final class FieldView: UIView, UIGestureRecognizerDelegate {
         }
     }
     
-    func addToHandSet(card: Card, at index: Int) { // может тут стоит не всю карту передавать, а только картинку?
-        copySelectedCardView.removeFromSuperview()
-        handSet.changeCard(at: index, to: CardView(face: card.face))
+    private func addGestureRecognizerForDiscardPile() {
+        let swipeRightGesture = UISwipeGestureRecognizer(
+            target: self,
+            action: #selector(handleSwipeForDiscardPile)
+        )
+        swipeRightGesture.direction = .right
+        swipeRightGesture.delegate = self
+        playingZoneSet.addGestureRecognizer(swipeRightGesture)
+        
+        let swipeLeftGesture = UISwipeGestureRecognizer(
+            target: self,
+            action: #selector(handleSwipeForDiscardPile)
+        )
+        swipeLeftGesture.direction = .left
+        swipeLeftGesture.delegate = self
+        playingZoneSet.addGestureRecognizer(swipeLeftGesture)
     }
     
-    func addToOpponentHandSet(card: Card, at index: Int) {
-        copySelectedCardView.removeFromSuperview()
-        opponentHandSet.changeCard(at: index, to: CardView(face: card.face))
-    }
-    
-    func showEmptyTrump() {
-        trumpView.isHidden = true
-    }
-    
-    func showEmptyPack() {
-        packView.isHidden = true
-        addGestureRecognizerToTrump()
+    @objc private func handleSwipeForDiscardPile(recognizer: UISwipeGestureRecognizer) {
+        if recognizer.direction == .left {
+            cardDataSource?.swipedPlayingSet(to: .left)
+        }
+        
+        if recognizer.direction == .right {
+            cardDataSource?.swipedPlayingSet(to: .right)
+        }
+        
+        
     }
     
     private func configurePack(with trump: Card) {
@@ -277,7 +324,7 @@ final class FieldView: UIView, UIGestureRecognizerDelegate {
         
         playingZoneSet.translatesAutoresizingMaskIntoConstraints = false
         NSLayoutConstraint.activate([
-            playingZoneSet.rightAnchor.constraint(equalTo: rightAnchor, constant: -145),
+            playingZoneSet.rightAnchor.constraint(equalTo: rightAnchor, constant: -135),
             playingZoneSet.leftAnchor.constraint(equalTo: trumpView.rightAnchor, constant: 50),
             playingZoneSet.topAnchor.constraint(equalTo: topAnchor, constant: frameView.height / 2.8),
             playingZoneSet.bottomAnchor.constraint(equalTo: bottomAnchor, constant: -(frameView.height / 2.8))

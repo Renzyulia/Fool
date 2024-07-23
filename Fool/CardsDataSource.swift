@@ -10,6 +10,7 @@ import UIKit
 protocol CardsDataSourceDelegate: AnyObject {
     func playerMoved(card: Card, to: Card?)
     func tookCard(at: Int, player: CurrentPlayer)
+    func playerSwipedPlayingSet(to: UISwipeGestureRecognizer.Direction)
 }
 
 final class CardsDataSource: CardDataSource {
@@ -72,6 +73,10 @@ final class CardsDataSource: CardDataSource {
         currentPlayer = .you
     }
     
+    func swipedPlayingSet(to direction: UISwipeGestureRecognizer.Direction) {
+        delegate?.playerSwipedPlayingSet(to: direction)
+    }
+    
     func cancelMove() {
         fieldView.cancelMove()
     }
@@ -94,5 +99,30 @@ final class CardsDataSource: CardDataSource {
     func addToOpponentHand(card: Card) {
         opponentHandCards[addedCardIndex] = card
         fieldView.addToOpponentHandSet(card: card, at: addedCardIndex)
+    }
+    
+    func deleteCardInPlayingSet() {
+        playingCards = [nil, nil, nil, nil, nil, nil]
+        fieldView.cleanPlayingZone()
+    }
+    
+    func abandonToHandCards() {
+        for playingCard in playingCards {
+            if playingCard != nil {
+                handCards.append(playingCard)
+            }
+        }
+        
+        deleteCardInPlayingSet()
+    }
+    
+    func abandonToOpponentHandCards() {
+        for playingCard in playingCards {
+            if playingCard != nil {
+                opponentHandCards.append(playingCard)
+            }
+        }
+        
+        deleteCardInPlayingSet()
     }
 }
