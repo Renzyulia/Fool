@@ -12,7 +12,7 @@ enum CurrentPlayer {
     case opponent
 }
 
-final class GameController: CardsDataSourceDelegate {
+final class GameController: CardsDataSourceDelegate, FieldViewDelegate {
     
     var field: FieldView? = nil
     var cardsDataSource: CardsDataSource? = nil
@@ -36,6 +36,7 @@ final class GameController: CardsDataSourceDelegate {
             trump: trump ?? Card(suit: .clubs, denomination: .six)
         )
         self.field = field
+        field.delegate = self
         
         let cardsDataSource = CardsDataSource(
             fieldView: field,
@@ -52,14 +53,141 @@ final class GameController: CardsDataSourceDelegate {
     
     func playerMoved(card: Card, to playedCard: Card?) {
         guard let playedCard = playedCard else {
-            cardsDataSource?.putDownCard()
+            switch currentPlayer {
+            case .you:
+                cardsDataSource?.putDownHandCard()
+                currentPlayer = .opponent
+            case .opponent:
+                cardsDataSource?.putDownOpponentCard()
+                currentPlayer = .you
+            }
+            
             return
         }
         
         if card.canBeat(playedCard) {
-            cardsDataSource?.putDownCard()
+            switch currentPlayer {
+            case .you:
+                cardsDataSource?.putDownHandCard()
+                currentPlayer = .opponent
+            case .opponent:
+                cardsDataSource?.putDownOpponentCard()
+                currentPlayer = .you
+            }
         } else {
             cardsDataSource?.cancelMove()
+        }
+    }
+    
+    func tookCard(at index: Int, player: CurrentPlayer) {
+        if pack.isEmpty {
+            handleAddedCard(trump!, at: index, player: player)
+            field?.showEmptyTrump()
+        } else {
+            let addedCard = pack.removeFirst()
+            handleAddedCard(addedCard, at: index, player: player)
+            
+            if pack.isEmpty {
+                field?.showEmptyPack()
+            }
+        }
+    }
+    
+    func playerSwipedPlayingSet(to direction: UISwipeGestureRecognizer.Direction) {
+        if direction == .right {
+            cardsDataSource?.deleteCardInPlayingSet()
+        }
+        
+        if direction == .left {
+            switch currentPlayer {
+            case .you:
+                cardsDataSource?.abandonToHandCards()
+            case .opponent:
+                cardsDataSource?.abandonToOpponentHandCards()
+            }
+        }
+    }
+    
+    func recognizerShouldBegin(_ gestureRecognizer: UIGestureRecognizer) -> Bool {
+        guard let cardsDataSource = cardsDataSource else { return false }
+        
+        var handCardsCount = 0
+        var opponentHandsCount = 0
+        
+        for card in cardsDataSource.handCards {
+            if card != nil {
+                handCardsCount += 1
+            }
+        }
+        
+        for card in cardsDataSource.opponentHandCards {
+            if card != nil {
+                opponentHandsCount += 1
+            }
+        }
+
+        if gestureRecognizer is UISwipeGestureRecognizer {
+            let recognizer = gestureRecognizer as! UISwipeGestureRecognizer
+            
+            if recognizer.direction == .right {
+                if handCardsCount == opponentHandsCount {
+                    return true
+                } else {
+                    return false
+                }
+            }
+            
+            if recognizer.direction == .left {
+                if handCardsCount != opponentHandsCount {
+                    return true
+                } else {
+                    return false
+                }
+            }
+        }
+        
+        if gestureRecognizer is UIPanGestureRecognizer {
+            guard let view = gestureRecognizer.view, let field = field else { return false }
+            
+            let copySelectedCardView = view.snapshotView(afterScreenUpdates: true)!
+            copySelectedCardView.frame = field.convert(view.frame, from: view.superview)
+            
+            if currentPlayer == .opponent && field.opponentHandSet.frame.contains(CGPoint(x: copySelectedCardView.center.x, y: copySelectedCardView.center.y)) {
+                return true
+            }
+            
+            if currentPlayer == .you && field.handSet.frame.contains(CGPoint(x: copySelectedCardView.center.x, y: copySelectedCardView.center.y)) {
+                return true
+            }
+            
+            if field.playingZoneSet.frame.contains(CGPoint(x: copySelectedCardView.center.x, y: copySelectedCardView.center.y)) {
+                return false
+            }
+        }
+        
+        return false
+    }
+    
+    private func handleAddedCard(_ addedCard: Card, at index: Int, player: CurrentPlayer) {
+        guard let cardsDataSource = cardsDataSource else { return }
+        
+        switch currentPlayer {
+        case .you:
+            if player == .you && cardsDataSource.handCards[index] == nil {
+                cardsDataSource.addToHand(card: addedCard)
+            } else if player == .opponent && !cardsDataSource.handCards.contains(where: { card in card == nil }) && cardsDataSource.opponentHandCards[index] == nil {
+                cardsDataSource.addToOpponentHand(card: addedCard)
+            } else {
+                cardsDataSource.cancelMove()
+            }
+        case .opponent:
+            if player == .opponent && cardsDataSource.opponentHandCards[index] == nil {
+                cardsDataSource.addToOpponentHand(card: addedCard)
+            } else if player == .you && !cardsDataSource.opponentHandCards.contains(where: { card in card == nil }) && cardsDataSource.handCards[index] == nil {
+                cardsDataSource.addToHand(card: addedCard)
+            } else {
+                cardsDataSource.cancelMove()
+            }
         }
     }
    
